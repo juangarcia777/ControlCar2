@@ -8,5 +8,7 @@ router.get('/getall', userController.getFuncionarios);
 
 router.post('/add', userController.createUser);
 
+router.get('/login/:user/:senha', userController.login);
+
 
 module.exports = router;

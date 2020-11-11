@@ -2,6 +2,40 @@ const connection = require("../config/db");
 const requestStatus = require("../utils/requestStatus");
 //let User = require('./user.model');
 
+exports.login = async (req, res) => {
+  try {
+    connection.getConnection((error, tempCont) => {
+      if (!!error) {
+        tempCont.release();
+        return res
+          .status(requestStatus.BAD_REQUEST)
+          .json({ message: "Erro ao conectar no banco" });
+      } else {
+        console.log("Conected! 🚀 ");
+
+        var user= req.params.user;
+        var senha= req.params.senha;
+
+        tempCont.query(`SELECT * FROM users WHERE usuario='${user}' AND senha='${senha}'`, (error, rows, fields) => {
+          //tempCont.release();
+          if (!!error) {
+            return res
+              .status(requestStatus.BAD_REQUEST)
+              .json({ message: "Erro ao tentar buscar no banco" });
+          } else {
+
+              res.status(requestStatus.OK).json(rows);
+
+          }
+          
+        });
+      }
+    });
+  } catch (error) {
+    return res.status(requestStatus.BAD_REQUEST).json(error);
+  }
+};
+
 exports.getFuncionarios = async (req, res) => {
   try {
     connection.getConnection((error, tempCont) => {
@@ -47,17 +81,12 @@ exports.createUser = async (req, res)=>{
         //console.log('Dentro do else', recebe);
         try {
           recebe.map(async(value) => {
-            await tempCont.query(`INSERT INTO users (nome, usuario, senha ) VALUES ('${value.nome}', '${value.usuario}','${value.senha}')`, (error, rows, fields)=>{
-              
-              if(!!error){
-                console.log('Error in the query!!!  ⚠️');
-              }else{
-                return res.status(requestStatus.CREATED_STATUS).json(rows);
-              }
-            })
-
+            await tempCont.query(`INSERT INTO users (nome, usuario, senha) VALUES ('${value.nome}', '${value.usuario}','${value.senha}')`, (error, rows, fields)=>{})
            });
-           tempCont.release();
+
+          res.status(requestStatus.CREATED_STATUS).json({"MESSAGE":"Gravado com Sucesso !"});
+
+          tempCont.release();
         } catch (error) {
           return res.status(requestStatus.BAD_REQUEST)
           .json({ message: "Erro ao conectar no banco try" });

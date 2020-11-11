@@ -2,7 +2,7 @@ const connection = require("../config/db");
 const requestStatus = require("../utils/requestStatus");
 //let User = require('./user.model');
 
-exports.getCars = async (req, res) => {
+exports.getAponts = async (req, res) => {
   try {
     connection.getConnection((error, tempCont) => {
       if (!!error) {
@@ -30,38 +30,40 @@ exports.getCars = async (req, res) => {
   }
 };
 
-exports.getCarsById = async (req, res) => {
-    try {
-      connection.getConnection((error, tempCont) => {
-        if (!!error) {
-          tempCont.release();
-          return res
-            .status(requestStatus.BAD_REQUEST)
-            .json({ message: "Erro ao conectar no banco" });
-        } else {
-          console.log("Conected! 🚀 ");
 
-          var id= req.params.id;
-  
-          tempCont.query(`SELECT A.*,C.* FROM users AS A INNER JOIN cars_users AS B ON A.id = B.user INNER JOIN cars AS C ON B.car = C.id WHERE A.id='${id}'`, (error, rows, fields) => {
-            //tempCont.release();
-            if (!!error) {
-              return res
-                .status(requestStatus.BAD_REQUEST)
-                .json({ message: "Erro ao tentar buscar no banco" });
-            } else {
-              return res.status(requestStatus.OK).json(rows); 
-            }
-          });
-        }
-      });
-    } catch (error) {
-      return res.status(requestStatus.BAD_REQUEST).json(error);
-    }
-  };
+exports.getApontsById = async (req, res) => {
+  try {
+    connection.getConnection((error, tempCont) => {
+      if (!!error) {
+        tempCont.release();
+        return res
+          .status(requestStatus.BAD_REQUEST)
+          .json({ message: "Erro ao conectar no banco" });
+      } else {
+        console.log("Conected! 🚀 ");
+
+        var id_user= req.params.id_user;
+        var id_car= req.params.id_car;
+
+        tempCont.query(`SELECT * FROM apontamentos WHERE id_user='${id_user}' AND id_car='${id_car}'`, (error, rows, fields) => {
+          //tempCont.release();
+          if (!!error) {
+            return res
+              .status(requestStatus.BAD_REQUEST)
+              .json({ message: "Erro ao tentar buscar no banco" });
+          } else {
+            return res.status(requestStatus.OK).json(rows);
+          }
+        });
+      }
+    });
+  } catch (error) {
+    return res.status(requestStatus.BAD_REQUEST).json(error);
+  }
+};
 
 
-exports.createCars = async (req, res)=>{
+exports.createAponts = async (req, res)=>{
   try {
 
     const recebe = req.body;
