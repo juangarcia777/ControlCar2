@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Button } from 'react-native'
+import { View, Text, StyleSheet, Button, FlatList } from 'react-native'
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler'
 import { useNavigation } from '@react-navigation/native';
 
@@ -14,6 +14,11 @@ export default function Home() {
 
     const [ini_viagem, setIni_viagem] = useState(false)
 
+    // NOVO APONTAMENTO
+    const [km_inicial, setKmInicial] = useState('')
+    const [obs, setObs] = useState('')
+    const [array, setArray] = useState()
+
     // USER
     const [id, setId] = useState()
     const [nome, setNome] = useState()
@@ -27,17 +32,45 @@ export default function Home() {
     const [placa, setPlaca] = useState()
     const [cor, setCor] = useState()
     const [foto, setFoto] = useState()
+    // ----------------------------------------------------
+
+    function handleInicio() {
+        setIni_viagem(true)
+    }
+
+    const saveApont = () => {
+        Realm.open({schema: [ ApontsSchema ]})
+        .then(realm => {
+
+              // Add another car
+              realm.write(() => {
+                const mysearch = realm.create('Aponts', {
+                    id_user: id,
+                    id_car: id_carro,
+                    km_inicial: km_inicial,
+                    km_final: '000',
+                    data: Date.now(),
+                    local: obs
+                    });
+                });
+
+            // Remember to close the realm when finished.
+            realm.close();
+        })
+        .catch(error => {
+            console.log(error);
+        });
+    }
+    // ------------------------------------------------
 
     useEffect(() => {
         Realm.open({schema: [ PersonSchema, ApontsSchema]})
         .then(realm => {
-
             const u = realm.objects('Person');
             const y = realm.objects('Aponts');
-            y.map((item)=> {
-                console.log("ID-USer="+item.id_user)
-            })
-            console.log('Na HOME: '+u[0].id_carro+'  User:'+ u[0].id)
+            
+            setArray(y)
+            
             let dados= u[0]
             setId(dados.id)
             setNome(dados.nome)
@@ -50,6 +83,7 @@ export default function Home() {
             setCor(dados.cor)
             setFoto(dados.foto)
 
+
             // Remember to close the realm when finished.
             realm.close();
         })
@@ -60,24 +94,29 @@ export default function Home() {
     }, [])
 
     return (
-        <View style={styles.container}> 
+        <View style={styles.container}>
             <View style={styles.box1}>
                 <View style={styles.infoCarro}><Text>{nome}</Text></View>
                 <View style={styles.infoCarro}><Text>{carro}</Text><Text>{placa}</Text></View>
             </View>
-            <Button title="Abrir Viagem" onPress={()=> alert('ola') }  />
+            <Button title="Abrir Viagem" onPress={handleInicio}  />
 
             {ini_viagem &&
+            <>
             <View style={{marginTop: 30}}>
-                <TextInput style={styles.input} placeholder="Usuário" />
-                <TextInput style={styles.input} placeholder="Senha"  />
+                <TextInput style={styles.input} placeholder="KM Atual" onChangeText={(e)=> setKmInicial(e)} />
+                <TextInput style={styles.input} placeholder="Local Destino" onChangeText={(e)=> setObs(e)} />
 
-                <TouchableOpacity style={styles.botao}>
-                    <Text>Entrar</Text>
+                <TouchableOpacity style={styles.botao} onPress={saveApont}>
+                    <Text>salvar</Text>
                 </TouchableOpacity>
             </View>
+            </>
             }
+            <Text>{array[0].id_car}</Text>
 
+           
+            
         </View>
     )
 }
