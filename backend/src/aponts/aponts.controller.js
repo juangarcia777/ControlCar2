@@ -47,7 +47,7 @@ exports.getApontsById = async (req, res) => {
 
         tempCont.query(`SELECT * FROM apontamentos WHERE id_user='${id_user}' AND id_car='${id_car}'`, (error, rows, fields) => {
           //tempCont.release();
-          if (!!error) {
+          if (!!error) { 
             return res
               .status(requestStatus.BAD_REQUEST)
               .json({ message: "Erro ao tentar buscar no banco" });
@@ -75,11 +75,11 @@ exports.createAponts = async (req, res)=>{
           .status(requestStatus.BAD_REQUEST)
           .json({ message: "Erro ao conectar no banco" });
       }else{
-        console.log('Conected!  🚀');
-        //console.log('Dentro do else', recebe);
+        console.log('Dentro do else', recebe);
         try {
-          recebe.map(async(value) => {
-            await tempCont.query(`INSERT INTO cars (carro, placa, cor, foto ) VALUES ('${value.carro}', '${value.placa}','${value.cor}','${value.foto}')`, (error, rows, fields)=>{})
+          recebe.map(value => {
+            console.log(value)
+            tempCont.query(`INSERT INTO apontamentos (id_user, id_car,km_inicial, km_final,data, local ) VALUES ('${value.id_user}', '${value.id_car}','${value.km_inicial}','${value.km_final}','${value.data}','${value.local}')`, (error, rows, fields)=>{})
            });
 
           res.status(requestStatus.CREATED_STATUS).json({"MESSAGE":"Gravado com Sucesso !"});

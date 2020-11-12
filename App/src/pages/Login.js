@@ -1,40 +1,30 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { View, Text, StyleSheet, Button } from 'react-native'
 import { TextInput, TouchableOpacity } from 'react-native-gesture-handler'
 import { useNavigation } from '@react-navigation/native';
+import NetInfo from "@react-native-community/netinfo";
 
 import api from '../services';
-import {CarSchema, PersonSchema, ApontsSchema} from '../schemas';
+
+var connected;
+var logged;
 
 export default function Login() {
 
     const navigation = useNavigation();
+
+    
 
     // STATES
     // ---------------------------------------------
     const [load, setLoad] = useState(false)
 
     // USER
-    const [id, setId] = useState()
-    const [nome, setNome] = useState()
+   
     const [user, setUser] = useState('Juan')
     const [senha, setSenha] = useState('123')
-    const [login, setLogin] = useState(false)
 
-    // CARRO
-    const [id_carro, setIDCarro] = useState(0)
-    const [carro, setCarro] = useState()
-    const [placa, setPlaca] = useState()
-    const [cor, setCor] = useState()
-    const [foto, setFoto] = useState()
-
-    // // APONTAMENTOS
-    // const [id_user_ap, setIdUser] = useState()
-    // const [id_car_ap, setCarAp] = useState()
-    // const [km_inicial, setKmInicial] = useState()
-    // const [km_final, setKmInicial] = useState()
-    // ----------------------------------------------------
-
+   
     // FUNÇÕES
     // -------------------------------------------------
 
@@ -44,118 +34,129 @@ export default function Login() {
         })
     }
 
-    function getAponts(id_user, id_car) {
-        return new Promise((resolve, reject) => {
-            resolve(api.get('aponts/get/'+id_user+'/'+id_car))
-        })
-    }
+    // function getAponts(id_user, id_car) {
+    //     return new Promise((resolve, reject) => {
+    //         resolve(api.get('aponts/get/'+id_user+'/'+id_car))
+    //     })
+    // }
 
     const handleSave = async () => {
-            console.log('entrei')
-            setLoad(true)
-            console.log('fiz a req')
-            await api.get('user/login/'+user+'/'+senha)
-            .then(function(response){
 
+            let data=[{"login":false, "id_user": "", "nome": "", "carro": "", "placa": "", "cor":"", "foto":"", "id_carro": ""}]
+
+            setLoad(true)
+
+        if(!connected) {
+
+            Realm.open({path:'projetox.realm'})
+            .then(realm => {
+
+               var obj= realm.objects('Person')
+               if(obj[0].usuario === user && obj[0].senha === senha) {
+                    data.login= true;
+                    data.id_user= obj[0].id;
+                    data.nome = obj[0].nome
+                    
+                    data.carro= obj[0].carro;
+                    data.placa = obj[0].placa;
+                    data.cor= obj[0].cor;
+                    data.foto= obj[0].foto;
+                    data.id_carro= obj[0].id;
+                   console.log('entrou')
+
+               } else {
+                   alert('usuário e ou senha erradas !!')
+               }
+                
+            })
+            .catch(error => {
+                console.log(error);
+            });
+                
+        } else {
+
+            await api.get('user/login/'+user+'/'+senha)
+            .then( async function(response){
+
+           
             let resp= response.data;
 
              if(resp.length > 0) {
-                setLogin(true)
-                setId(resp[0].id)
-                setNome(resp[0].nome)
+                data.login= true;
+                data.id_user= resp[0].id;
+                data.nome = resp[0].nome
                 
-                getCar(resp[0].id).then(res => {
-                    setCarro(res.data[0].carro) 
-                    setPlaca(res.data[0].placa) 
-                    setCor(res.data[0].cor)
-                    setFoto(res.data[0].foto)
-                    setIDCarro(res.data[0].id)
-
-                    
-                })
-
+                const res= await getCar(resp[0].id);
                 
+                data.carro= res.data[0].carro;
+                data.placa = res.data[0].placa;
+                data.cor= res.data[0].cor;
+                data.foto= res.data[0].foto;
+                data.id_carro= res.data[0].id;
 
-             } else {
+            } else {
                 alert("Usuário e ou senha errados !")
                 console.log('Senha errada')
              }
 
             });
 
+        }
 
-        if(login) {
-        // buscaCarro(id)
-        console.log('guardando Schema == Login esta true')
-        Realm.open({schema: [ PersonSchema, CarSchema]})
+
+        setTimeout(()=> {
+
+
+        if(data.login) {
+        Realm.open({path:'projetox.realm'})
             .then(realm => {
 
                 // Add another car
                 realm.write(() => {
                 realm.delete(realm.objects('Person'))
                 const myPerson = realm.create('Person', {
-                    id: id,
-                    nome: nome,
+                    id: data.id_user,
+                    nome: data.nome,
                     usuario: user,
                     senha,
-                    id_carro: id_carro,
-                    carro,
-                    placa,
-                    cor,
-                    foto
+                    id_carro: data.id_carro,
+                    carro: data.carro,
+                    placa: data.placa,
+                    cor: data.cor,
+                    foto: data.foto
                     });
                 });
 
-                const u = realm.objects('Person');
-                console.log(u)
-                console.log('Acabei de guardar')
-
-                // Remember to close the realm when finished.
-                realm.close();
+                
             })
             .catch(error => {
                 console.log(error);
             });
 
-            console.log("Carro: "+id_carro)
-            console.log("User: "+id)
-
-            getAponts(id, id_carro).then(apon => {
-
-                Realm.open({schema: [ ApontsSchema ]})
-                .then(realm => {
-
-                // Add another car
-                realm.write(() => {
-                realm.delete(realm.objects('Aponts'))
-                apon.data.map((item) => {
-                        const myPerson = realm.create('Aponts', {
-                        id_user: item.id_user,
-                        id_car: item.id_car,
-                        km_inicial: item.km_inicial,
-                        km_final: item.km_final,
-                        data: item.data,
-                        local: item.local
-                        });
-                    })
-                });
-
-                // Remember to close the realm when finished.
-                realm.close();
-                })
-                .catch(error => {
-                    console.log(error);
-                });
-
-            })
-
             setLoad(false)
+
 
             navigation.navigate("Home")
 
         }
+
+        }, 2000)
+
         
     }
+
+    useEffect(() => {
+
+        async function getNet() {
+        await NetInfo.fetch().then(state => {
+            connected= state.isConnected;
+        });
+        }
+
+        getNet();
+        // -------------------------------------------------------------------
+
+    }, [])
 
     return (
         <View style={styles.container}>

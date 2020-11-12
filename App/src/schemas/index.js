@@ -36,4 +36,11 @@ const ApontsSchema = {
     }
   };
 
-  export {CarSchema, PersonSchema, ApontsSchema};
+  const AccessSchema = {
+    name: 'Access',
+    properties: {
+      acesso: 'int',
+    }
+  };
+
+  export {CarSchema, PersonSchema, ApontsSchema, AccessSchema};

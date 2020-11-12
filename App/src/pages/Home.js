@@ -1,110 +1,229 @@
-import React, { useState, useEffect } from 'react'
-import { View, Text, StyleSheet, Button, FlatList } from 'react-native'
-import { TextInput, TouchableOpacity } from 'react-native-gesture-handler'
+import React, { useState, useEffect, useLayoutEffect } from 'react'
+import { View, Text, StyleSheet, Button, FlatList, Modal } from 'react-native'
+import { ScrollView, TextInput, TouchableOpacity } from 'react-native-gesture-handler'
 import { useNavigation } from '@react-navigation/native';
 
 import api from '../services';
-import {ApontsSchema, PersonSchema, CarSchema} from '../schemas';
+import NetInfo from "@react-native-community/netinfo";
 
+var connected;
 
+var openRealm;
 
 export default function Home() {
 
     const navigation = useNavigation();
 
-    const [ini_viagem, setIni_viagem] = useState(false)
+    const [modalVisible, setModalVisible] = useState(false);
 
     // NOVO APONTAMENTO
-    const [km_inicial, setKmInicial] = useState('')
+    const [km_inicial, setKmInicial] = useState()
+    const [km_final, setKmFinal] = useState()
     const [obs, setObs] = useState('')
-    const [array, setArray] = useState()
+    const [array, setArray] = useState([])
+    const [dataHome, setDataHome] = useState([{"id":"", "nome":"", "usuario":"", "senha":"", "id_carro":"", "carro":"", "placa":"", "cor":"", "foto":"" }]);
 
-    // USER
-    const [id, setId] = useState()
-    const [nome, setNome] = useState()
-    const [user, setUser] = useState('Juan')
-    const [senha, setSenha] = useState('123')
-    const [login, setLogin] = useState(false)
+    const [ini_viagem, setIni_viagem] = useState(false)
 
-    // CARRO
-    const [id_carro, setIDCarro] = useState(0)
-    const [carro, setCarro] = useState()
-    const [placa, setPlaca] = useState()
-    const [cor, setCor] = useState()
-    const [foto, setFoto] = useState()
+    const [viagem_aberta, setViagemAberta] = useState(false)
+    const [buscaUltimo, setBuscaUltimo] = useState(false)
+
     // ----------------------------------------------------
 
-    function handleInicio() {
-        setIni_viagem(true)
+    var dataH= [{"id":"", "nome":"", "usuario":"", "senha":"", "id_carro":"", "carro":"", "placa":"", "cor":"", "foto":"" }];
+
+    function handleExitModal() {
+        setModalVisible(!modalVisible)
+    }
+
+    function encerraViagem() {
+        
+        if(!connected) {
+
+        var aponts = openRealm.objects('Aponts')
+        openRealm.write(()=> {
+            var arr= aponts[aponts.length - 1];
+            arr.km_final = parseInt(km_final);
+        })
+
+        setArray([])
+
+        setModalVisible(false)
+        setViagemAberta(false)
+
+        } else {
+            console.log('Sem internet !')
+
+            var aponts = openRealm.objects('Aponts')
+            openRealm.write(()=> {
+                var arr= aponts[aponts.length - 1];
+                arr.km_final = parseInt(km_final);
+            })
+
+            console.log(aponts)
+
+            async function envia() {
+            
+            try {
+
+            await api.post('aponts/add', aponts )
+            .then(function(response){
+                console.log('salvo com sucesso no Back-end')
+            }).catch((error) => console.log( error.response.request._response ) );
+
+            openRealm.write(()=> {
+                openRealm.delete(openRealm.objects('Aponts'))
+            })
+
+            setModalVisible(false)
+            setViagemAberta(false)
+
+            setArray([])
+
+            alert('Informações sincronizadas com sucesso !')
+
+            } catch(e) {
+                console.log(e)
+            }
+            }
+            
+            envia();
+        }
+
     }
 
     const saveApont = () => {
-        Realm.open({schema: [ ApontsSchema ]})
-        .then(realm => {
 
+            var km_init= parseInt(km_inicial)
+            var now = new Date
+            var hoje= '2020-04-03T00:00:00.000Z'
+
+            console.log(hoje)
               // Add another car
-              realm.write(() => {
-                const mysearch = realm.create('Aponts', {
-                    id_user: id,
-                    id_car: id_carro,
-                    km_inicial: km_inicial,
-                    km_final: '000',
-                    data: Date.now(),
+              openRealm.write(() => {
+                const mysearch = openRealm.create('Aponts', {
+                    id_user: dataHome.id, 
+                    id_car: dataHome.id_carro,
+                    km_inicial: km_init,
+                    km_final: 0,
+                    data: hoje,
                     local: obs
                     });
                 });
 
+                setArray([{
+                    "id_user": dataHome.id, 
+                    "id_car": dataHome.id_carro,
+                    "km_inicial": km_init,
+                    "km_final": 0,
+                    "data": hoje,
+                    "local": obs
+                    }])
+
+
+                setKmInicial('');
+                setObs('');
+                setIni_viagem(false)
+
+                alert('Viagem iniciada com sucesso !')
+            
+
             // Remember to close the realm when finished.
-            realm.close();
-        })
-        .catch(error => {
-            console.log(error);
-        });
+            // realm.close();
+
+
+       
     }
     // ------------------------------------------------
 
     useEffect(() => {
-        Realm.open({schema: [ PersonSchema, ApontsSchema]})
-        .then(realm => {
-            const u = realm.objects('Person');
-            const y = realm.objects('Aponts');
-            
-            setArray(y)
-            
-            let dados= u[0]
-            setId(dados.id)
-            setNome(dados.nome)
-            setUser(dados.usuario)
-            setSenha(dados.senha)
-            
-            setIDCarro(dados.id_carro)
-            setCarro(dados.carro)
-            setPlaca(dados.placa)
-            setCor(dados.cor)
-            setFoto(dados.foto)
+      console.log(array)
+    }, [array])
 
 
-            // Remember to close the realm when finished.
-            realm.close();
-        })
-        .catch(error => {
-            console.log(error);
-        });
+    useLayoutEffect(() => {
+
+        // =----------------------------------------
+        async function getNet() {
+            await NetInfo.fetch().then(state => {
+                connected= state.isConnected;
+            });
+            
+            }
+    
+            getNet();
+        // --------------------------------------------------------
+
+        console.log('passei pelo DB')
+        async function openDB() {
+            openRealm = await Realm.open({path: 'projetox.realm'}) 
+            
+            const u = openRealm.objects('Person');
+            const y = openRealm.objects('Aponts');
+            
+            // setArray(y)
+
+            dataH.id= u[0].id
+            dataH.nome= u[0].nome
+            dataH.usuario= u[0].usuario
+            dataH.senha= u[0].senha
+            
+            dataH.id_carro= u[0].id_carro
+            dataH.carro= u[0].carro
+            dataH.placa= u[0].placa
+            dataH.cor= u[0].cor
+            dataH.foto= u[0].foto
+
+            if(y.length>0) {
+            var ultimo= y[y.length - 1];
+
+            var n = [{"data": ultimo.data, "id_car": ultimo.id_car, "id_user": ultimo.id_user, "km_final": ultimo.km_final, "km_inicial": ultimo.km_inicial, "local": ultimo.local}];
+            
+            console.log(n)
+            if(ultimo.km_final === 0) {
+                setViagemAberta(true)
+                setArray(n)
+            }
+            }
+
+            setDataHome(dataH)
+
+            console.log(y)
+
+            setBuscaUltimo(true)
+        }
+
+        setTimeout(() => {
+            openDB()
+            console.log(array)
+
+        }, 1000);
 
     }, [])
 
+    
     return (
-        <View style={styles.container}>
-            <View style={styles.box1}>
-                <View style={styles.infoCarro}><Text>{nome}</Text></View>
-                <View style={styles.infoCarro}><Text>{carro}</Text><Text>{placa}</Text></View>
-            </View>
-            <Button title="Abrir Viagem" onPress={handleInicio}  />
+        <ScrollView style={{flex: 1}}>
 
-            {ini_viagem &&
+        <View style={styles.container}>
+
+            <View style={styles.box1}>
+                <View style={styles.infoNome}><Text style={{fontSize: 38}}>🚦‍</Text><Text style={{fontWeight: '700'}}>{dataHome.nome}</Text></View> 
+                <View style={styles.infoCarro}><Text style={{fontSize: 38}}>🚗</Text><Text style={{fontWeight: '700'}}>{dataHome.carro}</Text><Text style={{fontWeight: '700'}}>PLACA: {dataHome.placa}</Text></View>
+            </View>
+
+            {!viagem_aberta ?
+            <TouchableOpacity onPress={() => setIni_viagem(true)}><Text>Abrir</Text></TouchableOpacity>
+            :
+            <>
+            <Text><Text style={{fontSize: 26}}>🚧</Text> Atenção! Finalize sua viagem.</Text>
+            </>
+            }
+
+            {ini_viagem ?
             <>
             <View style={{marginTop: 30}}>
-                <TextInput style={styles.input} placeholder="KM Atual" onChangeText={(e)=> setKmInicial(e)} />
+                <TextInput style={styles.input} placeholder="KM Atual" keyboardType="numeric" onChangeText={(e)=> setKmInicial(e)} />
                 <TextInput style={styles.input} placeholder="Local Destino" onChangeText={(e)=> setObs(e)} />
 
                 <TouchableOpacity style={styles.botao} onPress={saveApont}>
@@ -112,12 +231,46 @@ export default function Home() {
                 </TouchableOpacity>
             </View>
             </>
+            :
+            <>
+            </>
             }
-            <Text>{array[0].id_car}</Text>
+           {array.map((item, index)=> {
+               
+               return(
+                   
+                   <View key={index} style={styles.listAponts}>
+                       <Text style={{fontWeight: '700'}}>{dataHome.carro}</Text>
+                       <Text >PLACA: {dataHome.placa}</Text>
+                       <Text>KM INICIAL: {item.km_inicial}</Text>
+                       <Text>KM FINAL: {item.km_final}</Text>
+                       <Text>DESTINO: {item.local}</Text>
+                       <Text >STATUS: {(item.km_final > 0)? <Text style={{color: 'red'}}>FINALIZADA</Text> : <Text style={{color: 'green'}}>ABERTA</Text>}</Text>
+                       {(item.km_final === 0)? 
+                       <Button title="Finalizar" onPress={() => setModalVisible(true)} /> : <></>}
+                   </View>
+               )
+            })}
 
-           
+            <Modal
+                animationType="slide"
+                transparent={true}
+                visible={modalVisible}
+                style={styles.modal}
+            >
+                <View style={{backgroundColor: '#F6f6f6', flex: 1}}>
+                <View style={styles.viewModal}>
+                    <Text>Digite a kilometragem apontada !</Text>
+                    <Text onPress={()=> setModalVisible(false)} style={styles.close}>❌</Text>
+                    <TextInput style={styles.inputModal} onChangeText={(e)=> setKmFinal(e)} placeholder="Digite a KM final" keyboardType="numeric" />
+                    <Button title="Encerrar" onPress={()=> encerraViagem()} />
+                </View>
+                </View>
+            </Modal>
             
         </View>
+        </ScrollView>
+
     )
 }
 
@@ -149,6 +302,81 @@ const styles= StyleSheet.create({
     },
     infoCarro: {
         justifyContent: "center",
-        alignItems: 'center'
+        alignItems: 'center',
+        backgroundColor: '#FFF',
+        padding: 20,
+        borderRadius: 5,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.30,
+        shadowRadius: 4.65,
+        
+        elevation: 8,
+        backgroundColor: '#D4FFD5' 
+        
+    },
+    infoNome: {
+        justifyContent: "center",
+        alignItems: 'center',
+        backgroundColor: '#FFF',
+        padding: 20,
+        borderRadius: 5,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.30,
+        shadowRadius: 4.65,
+        
+        elevation: 8,
+    },
+    listAponts: {
+        width: 300,
+        marginTop: 20,
+        marginBottom: 100,
+        justifyContent: "center",
+        backgroundColor: '#FFF',
+        padding: 20,
+        borderRadius: 5,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.30,
+        shadowRadius: 4.65,
+        
+        elevation: 8,
+    },
+    modal: {
+        flex: 1,
+        justifyContent:'center',
+        alignItems: 'center',
+    },
+    viewModal: {
+        marginTop: '50%',
+        width: '90%',
+        marginLeft: '5%',
+        backgroundColor:'#FFF',
+        padding: 20,
+        borderWidth: 1,
+        borderRadius: 10,
+        borderColor: '#CCC',
+    },
+    close: {
+        position: 'absolute',
+        right: 20,
+        top: 20,
+        fontSize:20
+    },
+    inputModal: {
+        backgroundColor: '#f4f4f4',
+        height: 40,
+        marginTop: 30,
+        marginBottom: 10
     }
 })
