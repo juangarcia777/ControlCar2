@@ -2,6 +2,8 @@ import React, { useState, useEffect, useLayoutEffect } from 'react'
 import { View, Text, StyleSheet, Button, FlatList, Modal } from 'react-native'
 import { ScrollView, TextInput, TouchableOpacity } from 'react-native-gesture-handler'
 import { useNavigation } from '@react-navigation/native';
+import LottieView from "lottie-react-native";
+
 
 import api from '../services';
 import NetInfo from "@react-native-community/netinfo";
@@ -15,6 +17,7 @@ export default function Home() {
     const navigation = useNavigation();
 
     const [modalVisible, setModalVisible] = useState(false);
+    const [ encerrando, setEncerrando ] = useState(false);
 
     // NOVO APONTAMENTO
     const [km_inicial, setKmInicial] = useState()
@@ -32,12 +35,25 @@ export default function Home() {
 
     var dataH= [{"id":"", "nome":"", "usuario":"", "senha":"", "id_carro":"", "carro":"", "placa":"", "cor":"", "foto":"" }];
 
-    function handleExitModal() {
-        setModalVisible(!modalVisible)
+    async function getNet() {
+        await NetInfo.fetch().then(state => {
+            connected= state.isConnected;
+        });
+        
     }
 
-    function encerraViagem() {
+    async function encerraViagem() {
+
+        await getNet();
+
+        setEncerrando(true);
+
+        setTimeout(()=> {
+            encerra()
+        }, 4000)
         
+        function encerra() {
+
         if(!connected) {
 
         var aponts = openRealm.objects('Aponts')
@@ -50,6 +66,8 @@ export default function Home() {
 
         setModalVisible(false)
         setViagemAberta(false)
+
+        alert("Voce está sem internet ! as informações serão enviadas quando a conexão voltar.")
 
         } else {
             console.log('Sem internet !')
@@ -90,15 +108,23 @@ export default function Home() {
             envia();
         }
 
+        setEncerrando(false);
+
+        }// FIM encerra()
+
     }
 
     const saveApont = () => {
 
-            var km_init= parseInt(km_inicial)
+            getNet();
+
+            var newKm = km_inicial.replace(/[-.]/, "")
+            console.log(newKm)
+            var km_init= parseInt(newKm)
             var now = new Date
             var hoje= '2020-04-03T00:00:00.000Z'
 
-            console.log(hoje)
+
               // Add another car
               openRealm.write(() => {
                 const mysearch = openRealm.create('Aponts', {
@@ -124,6 +150,8 @@ export default function Home() {
                 setKmInicial('');
                 setObs('');
                 setIni_viagem(false)
+                setViagemAberta(true)
+
 
                 alert('Viagem iniciada com sucesso !')
             
@@ -161,7 +189,7 @@ export default function Home() {
             const u = openRealm.objects('Person');
             const y = openRealm.objects('Aponts');
             
-            // setArray(y)
+            console.log(u)
 
             dataH.id= u[0].id
             dataH.nome= u[0].nome
@@ -223,7 +251,7 @@ export default function Home() {
             {ini_viagem ?
             <>
             <View style={styles.novaCorrida}>
-                <TextInput style={styles.input} placeholder="Kilometragem atual do veículo" keyboardType="numeric" onChangeText={(e)=> setKmInicial(e)} />
+                <TextInput style={styles.input} placeholder="Kilometragem atual do veículo" keyboardType="decimal-pad" onChangeText={(e)=> setKmInicial(e)} />
                 <TextInput style={styles.input} placeholder="Destino do motorista" onChangeText={(e)=> setObs(e)} />
 
                 <TouchableOpacity style={styles.botao} onPress={saveApont}>
@@ -240,12 +268,14 @@ export default function Home() {
                return(
                    
                    <View key={index} style={styles.listAponts}>
-                       <Text style={{fontWeight: '700'}}>{dataHome.carro}</Text>
-                       <Text >PLACA: {dataHome.placa}</Text>
-                       <Text>KM INICIAL: {item.km_inicial}</Text>
-                       <Text>KM FINAL: {item.km_final}</Text>
-                       <Text>DESTINO: {item.local}</Text>
-                       <Text >STATUS: {(item.km_final > 0)? <Text style={{color: 'red'}}>FINALIZADA</Text> : <Text style={{color: 'green'}}>ABERTA</Text>}</Text>
+                       <Text style={{fontWeight: '700', fontSize:22}}>🚗  {dataHome.carro}</Text>
+                       <Text><Text style={{fontWeight: '700', fontSize:18}}>🎟️   </Text> {dataHome.placa}</Text>
+                       <View style={{height: 1, flex:1, backgroundColor: '#ccc', marginBottom: 10, marginTop: 10}}></View>
+                       <Text><Text style={{fontWeight: '700', fontSize:18}}>🛣️   </Text> {item.km_inicial}</Text>
+                       <Text><Text style={{fontWeight: '700', fontSize:18}}>📌   </Text> {item.local}</Text>
+                       <View style={{height: 1, flex:1, backgroundColor: '#ccc', marginBottom: 10, marginTop: 10}}></View>
+
+                       <Text style={{marginBottom: 20}}><Text style={{fontWeight: '700', fontSize:18}}>🗺️   </Text> <Text style={{color: 'green'}}>ABERTA</Text></Text>
                        {(item.km_final === 0)? 
                        <Button title="Finalizar" onPress={() => setModalVisible(true)} /> : <></>}
                    </View>
@@ -265,12 +295,23 @@ export default function Home() {
                     <TextInput style={styles.inputModal} onChangeText={(e)=> setKmFinal(e)} placeholder="Digite a KM final" keyboardType="numeric" />
                     <Button title="Encerrar" onPress={()=> encerraViagem()} />
                 </View>
+                {encerrando &&
+                <>
+                <LottieView
+               source={require("../assets/animations/loader.json")}
+               autoPlay
+               speed={1.5}
+               loop
+               style={{backgroundColor: '#FFF', maxHeight:'100%'}}
+               />
+               <Text style={{textAlign:'center', marginTop: 80}}>FINALIZANDO SUA VIAGEM</Text>
+               </>
+                }
                 </View>
             </Modal>
             
         </View>
         </ScrollView>
-
     )
 }
 

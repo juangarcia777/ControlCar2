@@ -5,7 +5,7 @@ const requestStatus = require("../utils/requestStatus");
 exports.login = async (req, res) => {
   try {
     connection.getConnection((error, tempCont) => {
-      if (!!error) {
+      if (error) {
         tempCont.release();
         return res
           .status(requestStatus.BAD_REQUEST)
@@ -13,7 +13,7 @@ exports.login = async (req, res) => {
       } else {
         console.log("Conected! 🚀 ");
 
-        var user= req.params.user;
+        var user= req.params.user; 
         var senha= req.params.senha;
 
         tempCont.query(`SELECT * FROM users WHERE usuario='${user}' AND senha='${senha}'`, (error, rows, fields) => {

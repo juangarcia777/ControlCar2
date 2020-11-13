@@ -86,7 +86,7 @@ exports.createAponts = async (req, res)=>{
 
 
            tempCont.release();
-        } catch (error) {
+        } catch (error) { 
           return res.status(requestStatus.BAD_REQUEST)
           .json({ message: "Erro ao conectar no banco try" });
         } 
