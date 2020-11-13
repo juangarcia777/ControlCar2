@@ -213,7 +213,7 @@ export default function Home() {
             </View>
 
             {!viagem_aberta ?
-            <TouchableOpacity onPress={() => setIni_viagem(true)}><Text>Abrir</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.abrir} onPress={() => setIni_viagem(true)}><Text style={styles.textAbrir}> + ABRIR NOVA CORRIDA</Text></TouchableOpacity>
             :
             <>
             <Text><Text style={{fontSize: 26}}>🚧</Text> Atenção! Finalize sua viagem.</Text>
@@ -222,12 +222,12 @@ export default function Home() {
 
             {ini_viagem ?
             <>
-            <View style={{marginTop: 30}}>
-                <TextInput style={styles.input} placeholder="KM Atual" keyboardType="numeric" onChangeText={(e)=> setKmInicial(e)} />
-                <TextInput style={styles.input} placeholder="Local Destino" onChangeText={(e)=> setObs(e)} />
+            <View style={styles.novaCorrida}>
+                <TextInput style={styles.input} placeholder="Kilometragem atual do veículo" keyboardType="numeric" onChangeText={(e)=> setKmInicial(e)} />
+                <TextInput style={styles.input} placeholder="Destino do motorista" onChangeText={(e)=> setObs(e)} />
 
                 <TouchableOpacity style={styles.botao} onPress={saveApont}>
-                    <Text>salvar</Text>
+                    <Text style={{fontWeight: '600'}}>SALVAR</Text>
                 </TouchableOpacity>
             </View>
             </>
@@ -289,8 +289,12 @@ const styles= StyleSheet.create({
     input: {
         borderWidth: 1,
         borderColor: '#ccc',
-        width: 300,
-        height: 60
+        width: 250,
+        height: 60,
+        marginTop: 20,
+        padding: 15,
+        borderRadius: 10,
+        backgroundColor: '#f6f6f6'
     },
     botao: {
         width: 100,
@@ -298,7 +302,8 @@ const styles= StyleSheet.create({
         marginTop: 30,
         justifyContent: 'center',
         alignItems: 'center', 
-        backgroundColor: '#00FF00'
+        backgroundColor: '#FA624F',
+        borderRadius: 5
     },
     infoCarro: {
         justifyContent: "center",
@@ -321,7 +326,7 @@ const styles= StyleSheet.create({
     infoNome: {
         justifyContent: "center",
         alignItems: 'center',
-        backgroundColor: '#FFF',
+        backgroundColor: '#FAF47A',
         padding: 20,
         borderRadius: 5,
         shadowColor: "#000",
@@ -378,5 +383,42 @@ const styles= StyleSheet.create({
         height: 40,
         marginTop: 30,
         marginBottom: 10
+    },
+    abrir: {
+        backgroundColor: '#B1E4FA',
+        height: 40,
+        width: 200,
+        marginBottom: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 5,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.30,
+        shadowRadius: 4.65,
+        
+        elevation: 3,
+    },
+    textAbrir: {
+        fontWeight: '700',
+        color: '#000'
+    },
+    novaCorrida: {
+        backgroundColor: '#FFF',
+        padding: 10,
+        borderRadius: 10,
+        marginBottom: 50,
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.30,
+        shadowRadius: 4.65,
+        
+        elevation: 3,
     }
 })
